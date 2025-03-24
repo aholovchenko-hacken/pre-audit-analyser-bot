@@ -16,19 +16,31 @@ slack_events_adapter: SlackEventAdapter = SlackEventAdapter(os.environ['SIGNING_
 
 # Initialise a Slack WebClient instance
 client: slack.WebClient = slack.WebClient(token=os.environ['SLACK_TOKEN'])   # Initialise an instance of the Slack WebClient interface to interract later with Slack API
-BOT_ID = client.api_call("auth.test")['user_id']                             # Get the bot's user ID    
+BOT_ID = client.api_call("auth.test")['user_id']                             # Get the bot's user ID                     
+
+USED_LANGUAGES = ["solidity", "rust"]     
+
+# Check if the message contains a needed programming language from the USED_LANGUAGES list
+def check_language_exists(message: str) -> bool:
+    message = message.lower()
+    for language in USED_LANGUAGES:
+        if language in message:
+            return True
+    return False
+
 
 # Define a function(event handler) to handle messages from users in the #test-bot channel
 @slack_events_adapter.on("message")
-def handle_message(payload):
-    print(json.dumps(payload, indent=4))
+def handle_message(payload) -> None:
     event = payload.get("event", {})
     channel_id = event.get("channel")
     user_id = event.get("user")
     text = event.get("text")
+    print(text)
 
-    if BOT_ID != user_id:
-        client.chat_postMessage(channel=channel_id, text=text) # Send a message to the channel where an event was triggered with the text from the user
+    if user_id != None and user_id != BOT_ID and check_language_exists(text):
+        ts = event.get("ts")
+        client.chat_postMessage(channel=channel_id, thread_ts=ts, text="Solidity was found!)") # Reply in thread if a solidity message was found
 
 
 
