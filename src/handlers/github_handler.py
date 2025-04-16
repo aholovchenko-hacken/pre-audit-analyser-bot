@@ -105,9 +105,7 @@ class Repository:
         """
         if self.commit != "latest":
             repo.git.checkout(self.commit)
-            print(f"Checked out to commit: {repo.active_branch.commit}")
+            print(f"Checked out to commit: {repo.head.commit}")
         else:
             print(f"No commit provided, defaulting to latest commit")
 
-repository: Repository = Repository("git@github.com:hknio/0xResmic___Wallet_SC.git", "0xResmic", "solidity", "main", "latest", "MyContract.sol")
-repository.clone_repo("git@github.com:hknio/0xResmic___Wallet_SC.git")
