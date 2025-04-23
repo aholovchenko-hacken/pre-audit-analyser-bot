@@ -198,13 +198,3 @@ class Framework:
         self.install_dependencies()
         self.setup_formatter()
         self.run_formatter()
-                
-
-
-
-
-# framework: Framework = Framework("/Users/ah/Desktop/Hacken/Analysis/stHAI-contract")
-framework2: Framework = Framework("/Users/ah/Desktop/Hacken/Analysis/0xResmic___Wallet_SC")
-
-# framework.format_code()
-framework2.format_code()
