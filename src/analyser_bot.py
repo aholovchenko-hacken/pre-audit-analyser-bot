@@ -5,7 +5,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask
 from slackeventsapi import SlackEventAdapter  # To handle events from Slack
-from modules.github_handler import Repository
+from handlers.github_handler import Repository as R
+from handlers.framework_handler import Framework as F
 
 # Load environment variables
 load_dotenv(dotenv_path="./.env")
@@ -19,7 +20,7 @@ client: slack.WebClient = slack.WebClient(token=os.environ['SLACK_TOKEN'])   # I
 BOT_ID = client.api_call("auth.test")['user_id']                             # Get the bot's user ID                     
 
 USED_LANGUAGES = ["solidity", "rust"]     
-
+processed_messages: set = set()
 
 def check_language_exists(message: str) -> bool:
     """
@@ -67,19 +68,25 @@ def handle_message(payload) -> None:
     channel_id: str = event.get("channel")
     user_id: str = event.get("user")
     text: str = event.get("text")
+    message_id: str = event.get("ts")
     
+    # Skip if we've already processed this message
+    if message_id in processed_messages:
+        return
+    processed_messages.add(message_id)
+
     # Parse the text into a dictionary
     data_dict:dict = message_to_dict(text)
 
     if user_id != None and user_id != BOT_ID and check_language_exists(text):
         ts: str = event.get("ts")
-        repository: Repository = Repository(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict["Branch"], data_dict["Commit"], data_dict["Scope"])
+        repository: R = R(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict["Branch"], data_dict["Commit"], data_dict["Scope"])
         path:str = repository.clone_repo(data_dict["Repo"])
+        framework: F = F(path)
+        framework.format_code()
         client.chat_postMessage(channel=channel_id, thread_ts=ts, text=path) # Reply in thread if a solidity message was found
 
 
 
 if __name__ == '__main__':   # If we run this file directly - then start the server     
     app.run(debug=True)
-
-      
