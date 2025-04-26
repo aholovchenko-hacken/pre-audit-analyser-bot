@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask
 from slackeventsapi import SlackEventAdapter  # To handle events from Slack
-from handlers.github_handler import Repository as R
+from handlers.repository_handler import Repository as R
 from handlers.framework_handler import Framework as F
 
 # Load environment variables
