@@ -9,6 +9,9 @@ from datetime import datetime
 class Repository:
     all = {}
     def __init__(self, repo_ssh: str, client: str, language: str, branch: str = "main", commit: str = "latest", scope: str = "all") -> None:
+        if not all([client, repo_ssh, language]):
+            raise ValueError("Client, repo_ssh, and language must be non-empty strings")
+
         self.repo_ssh = repo_ssh
         self.client = client
         self.language = language
@@ -23,7 +26,9 @@ class Repository:
             "language": self.language,
             "branch": self.branch,
             "commit": self.commit,
-            "scope": self.scope
+            "scope": self.scope,
+            "timestamp": self.timestamp,
+            "created_at": self.created_at
         }
 
 
@@ -35,12 +40,31 @@ class Repository:
         return Repository.all[client]
 
 
-    def get_modified_repo_ssh(self, repo_ssh: str) -> str:
+    def __get_modified_repo_ssh(self, repo_ssh: str) -> str:
         """
         Returns the modified repository SSH URL for a given repository SSH URL(for this you need to set up your SSH keys)
         """
-        modified_repo_ssh = repo_ssh.replace("git@github.com:hknio", "git@github.com-hacken:hknio")
-        return modified_repo_ssh
+        return repo_ssh.replace("git@github.com:hknio", "git@github.com-hacken:hknio")
+
+
+    def __checkout_branch(self, repo: git.Repo) -> None:
+        """
+        Checks out to a new branch if the client provided a branch name
+        """
+        if self.branch != "main":
+            repo.git.checkout(self.branch)
+            print(f"Checked out to branch: {repo.active_branch.name}")
+        print(f"No branch provided, defaulting to main")
+    
+
+    def __checkout_commit(self, repo: git.Repo) -> None:
+        """
+        Checks out to a specific commit if the client provided a commit hash
+        """
+        if self.commit != "latest":
+            repo.git.checkout(self.commit)
+            print(f"Checked out to commit: {repo.head.commit}")
+        print(f"No commit provided, defaulting to latest commit")
 
 
     def clone_repo(self, repo_ssh: str) -> str:
@@ -49,12 +73,10 @@ class Repository:
         """
         # Create a temporary directory
         temp_dir = tempfile.mkdtemp(prefix=f"repo_clone_{self.client}")
-        
         # Constructing a file path to an SSH key in the home directory | os.path.expanduser() - converts ~ into an absolute path like '/home/username/.ssh/'
         ssh_key_path = os.path.join(os.path.expanduser("~/.ssh/"), "id_rsa_hacken_1")
-        
         # Modify the repo SSH URL if needed
-        modified_repo_ssh = self.get_modified_repo_ssh(repo_ssh)
+        modified_repo_ssh = self.__get_modified_repo_ssh(repo_ssh)
                         
         print(f"Cloning repository: {modified_repo_ssh}")
         print(f"Using SSH key: {ssh_key_path}")
@@ -73,39 +95,24 @@ class Repository:
             repo = git.Repo(temp_dir)
 
             # Checkout to a specific branch and commit if provided
-            self.checkout_branch(repo)
-            self.checkout_commit(repo)
+            self.__checkout_branch(repo)
+            self.__checkout_commit(repo)
 
-            print(f"Repository cloned successfully to {temp_dir}")
+            print(f"Repository cloned successfully to {temp_dir}\n")
+            print("////////////////////////////////////////////////////////////\n")
             return temp_dir
         except git.GitCommandError as e:
             print(f"Failed to clone repository: {str(e)}")
             return None
-        
         finally:
             # Restore original environment
             os.environ.clear()
             os.environ.update(original_env)
-        
 
-    def checkout_branch(self, repo: git.Repo) -> None:
-        """
-        Checks out to a new branch if the client provided a branch name
-        """
-        if self.branch != "main":
-            repo.git.checkout(self.branch)
-            print(f"Checked out to branch: {repo.active_branch.name}")
-        else:
-            print(f"No branch provided, defaulting to main")
-    
 
-    def checkout_commit(self, repo: git.Repo) -> None:
-        """
-        Checks out to a specific commit if the client provided a commit hash
-        """
-        if self.commit != "latest":
-            repo.git.checkout(self.commit)
-            print(f"Checked out to commit: {repo.head.commit}")
-        else:
-            print(f"No commit provided, defaulting to latest commit")
-
+repository: Repository = Repository(
+    repo_ssh="git@github.com:hknio/hknio.git",
+    client="hknio",
+    language="python",
+    branch="main",
+    commit="latest")
