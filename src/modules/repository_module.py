@@ -54,7 +54,7 @@ class Repository(Log):
             repo.git.checkout(self.branch)
             self.log_info("Checked out to branch: ", repo.active_branch.name)
         else:
-            self.log_info("No branch provided, defaulting to main.")
+            self.log_info("Defaulting to main.")
     
 
     def __checkout_commit(self, repo: git.Repo) -> None:
@@ -65,7 +65,7 @@ class Repository(Log):
             repo.git.checkout(self.commit)
             self.log_info("Checked out to commit: ", repo.head.commit)
         else:
-            self.log_info("No commit provided, defaulting to latest commit.")
+            self.log_info("Defaulting to latest commit.")
 
 
     def clone_repo(self, repo_ssh: str) -> str:
