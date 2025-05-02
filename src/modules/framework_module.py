@@ -190,7 +190,3 @@ class Framework(Log):
         self.__install_dependencies()
         self.__setup_formatter()
         self.__run_formatter()
-
-
-# framework: Framework = Framework("/Users/ah/Desktop/Hacken/Analysis/stHAI-contract")
-# framework.format_code()
