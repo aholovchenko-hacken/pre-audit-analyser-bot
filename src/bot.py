@@ -1,12 +1,12 @@
 import slack
 import os
-import re
 from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask
 from slackeventsapi import SlackEventAdapter  # To handle events from Slack
-from handlers.repository_handler import Repository as R
-from handlers.framework_handler import Framework as F
+from modules.repository_module import Repository as R
+from modules.framework_module import Framework as F
+from modules.cloc_module import Cloc
 
 # Load environment variables
 load_dotenv(dotenv_path="./.env")
@@ -76,17 +76,20 @@ def handle_message(payload) -> None:
     processed_messages.add(message_id)
 
     # Parse the text into a dictionary
-    data_dict:dict = message_to_dict(text)
+    data_dict: dict = message_to_dict(text)
 
     if user_id != None and user_id != BOT_ID and check_language_exists(text):
         ts: str = event.get("ts")
-        repository: R = R(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict["Branch"], data_dict["Commit"], data_dict["Scope"])
-        path:str = repository.clone_repo(data_dict["Repo"])
+        repository: R = R(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict.get("Branch", "main"), data_dict.get("Commit", "latest"), data_dict.get("Scope", "all"))
+        path: str = repository.clone_repo(data_dict["Repo"])
+        cloc: Cloc = Cloc(path)
         framework: F = F(path)
         framework.format_code()
-        client.chat_postMessage(channel=channel_id, thread_ts=ts, text=path) # Reply in thread if a solidity message was found
+        cloc_result: str = f"```{cloc.count_lines_of_code_full_scope(framework.framework)}```"
+        
+        client.chat_postMessage(channel=channel_id, thread_ts=ts, text=cloc_result) # Reply in thread if a solidity message was found
 
 
 
 if __name__ == '__main__':   # If we run this file directly - then start the server     
-    app.run(debug=True)
+    app.run(debug=True, port=3000)
