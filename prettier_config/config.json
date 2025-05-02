@@ -6,10 +6,7 @@
     "bracketSpacing": true,
     "overrides": [
       {
-        "files": "*.sol",
-        "options": {
-          "parser": "solidity-parse"
-        }
+        "files": "*.sol"
       }
     ]
 }
