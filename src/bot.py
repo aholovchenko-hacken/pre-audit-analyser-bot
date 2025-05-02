@@ -85,7 +85,7 @@ def handle_message(payload) -> None:
         cloc: Cloc = Cloc(path)
         framework: F = F(path)
         framework.format_code()
-        cloc_result: str = f"```{cloc.count_lines_of_code_full_scope(framework.framework)}```"
+        cloc_result: str = f"```{cloc.count_lines_of_code_full_scope(framework.framework)}```\nCode formatted\nBranch: {data_dict.get('Branch', 'main')}\nCommit: {data_dict.get('Commit', 'latest')}"
         
         client.chat_postMessage(channel=channel_id, thread_ts=ts, text=cloc_result) # Reply in thread if a solidity message was found
 
