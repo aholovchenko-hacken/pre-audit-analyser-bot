@@ -148,6 +148,7 @@ class Framework(Log):
         """
         try:
             if self.framework == "hardhat":
+                print(self.repo_path)
                 subprocess.run(
                     ["npx", "prettier", "--write", "**/*.sol"],
                     cwd=self.repo_path,
@@ -155,7 +156,7 @@ class Framework(Log):
                     capture_output=True,
                     text=True
                 )
-                self.log_info("Hardhat code formatted successfully\n")
+                self.log_success("Hardhat code formatted successfully\n")
                 return True
             elif self.framework == "foundry":
                 # Create a copy of the current environment
@@ -171,7 +172,7 @@ class Framework(Log):
                     capture_output=True,
                     text=True
                 )
-                self.log_info("Foundry code formatted successfully\n")
+                self.log_success("Foundry code formatted successfully\n")
                 return True
         except subprocess.CalledProcessError as e:
             self.log_error("Error formatting code: ", str(e))
@@ -189,3 +190,7 @@ class Framework(Log):
         self.__install_dependencies()
         self.__setup_formatter()
         self.__run_formatter()
+
+
+# framework: Framework = Framework("/Users/ah/Desktop/Hacken/Analysis/stHAI-contract")
+# framework.format_code()
