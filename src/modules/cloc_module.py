@@ -10,7 +10,7 @@ class Cloc(Log):
         },
         "foundry": {
             "extension": "sol",
-            "exclude": ["lib", "tests?", "mocks?", "scripts?", "interfaces?", "uniswap", "openzeppelin", "curve"]
+            "exclude": ["libs?", "tests?", "mocks?", "scripts?", "interfaces?", "uniswap", "openzeppelin", "curve"]
         }
     }
 
@@ -33,7 +33,7 @@ class Cloc(Log):
         exclusion: str = "|".join(self.CLOC_DEFINITIONS[framework]["exclude"])
         
         try:
-            self.log_info("Counting lines of code...\n")
+            self.log_info("\nCounting lines of code...\n")
             result: str = subprocess.run(
                 ["cloc", f"--include-ext={self.CLOC_DEFINITIONS[framework]["extension"]}", ".", "--by-file", f"--not-match-d={exclusion}"],
                 cwd=self.repo_path,
