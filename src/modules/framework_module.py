@@ -26,11 +26,11 @@ class Framework(Log):
         """
         Initialize the framework handler with the path to the cloned repository
         """
-        self.repo_path = repo_path
-        self.framework = self.__detect_framework()
+        self.repo_path: str = repo_path
+        self.framework: str
 
 
-    def __detect_framework(self) -> str:
+    def detect_framework(self) -> str:
         """
         Detects which framework is being used in the project
 
@@ -41,6 +41,7 @@ class Framework(Log):
             for config in framework_info["config_files"]:
                 config_path = Path(self.repo_path) / config
                 if config_path.exists():
+                    self.framework = framework_name
                     self.log_info("\nDetected framework: ", framework_name)
                     return framework_name
         # If no framework is detected, return "unknown"
@@ -148,7 +149,6 @@ class Framework(Log):
         """
         try:
             if self.framework == "hardhat":
-                print(self.repo_path)
                 subprocess.run(
                     ["npx", "prettier", "--write", "**/*.sol"],
                     cwd=self.repo_path,
