@@ -6,7 +6,7 @@ from flask import Flask
 from slackeventsapi import SlackEventAdapter  # To handle events from Slack
 from modules.repository_module import Repository as R
 from modules.framework_module import Framework as F
-from modules.cloc_module import Cloc
+from modules.cloc_module import Cloc as C
 
 # Load environment variables
 load_dotenv(dotenv_path="./.env")
@@ -55,6 +55,48 @@ def message_to_dict(message:str) -> dict:
     return data_dict
 
 
+def check_if_message_already_processed(message_id: str) -> bool:
+    """
+    Check if the message has already been processed
+    Args:
+        message_id (str): The ID of the message
+    Returns:
+        bool: True if the message has already been processed, False otherwise
+    """
+    if message_id in processed_messages:
+        return True
+    processed_messages.add(message_id)
+    return False
+
+
+def do_protocol_analysis(message_text: str) -> str:
+    """
+    Analyse the protocol and return a string with CLOC + additional results.
+    Args:
+        protocol_info (dict): The information about the protocol
+    Returns:
+        str: The result of the analysis
+    """
+    # Parse the text into a dictionary
+    data_dict: dict = message_to_dict(message_text)
+    # Define instances of the Repository, Cloc and Framework classes
+    repository: R = R(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict.get("Branch", "main"), data_dict.get("Commit", "latest"), data_dict.get("Scope", "all"))
+    framework: F = F(repository.temp_dir)
+    cloc: C = C(repository.temp_dir)
+    # Clone the repository, format the code and count the lines of code
+    
+    repository.clone_repo()
+    framework.detect_framework()
+    framework.format_code()
+    cloc_result: str = f"""
+        ```{cloc.count_lines_of_code_full_scope(framework.framework)}```\n
+        Code formatted\n
+        Branch: {data_dict.get('Branch', 'main')}\n
+        Commit: {data_dict.get('Commit', 'latest')}
+    """
+    return cloc_result
+
+
 @slack_events_adapter.on("message")
 def handle_message(payload) -> None:
     """
@@ -71,23 +113,13 @@ def handle_message(payload) -> None:
     message_id: str = event.get("ts")
     
     # Skip if we've already processed this message
-    if message_id in processed_messages:
+    if check_if_message_already_processed(message_id):
         return
-    processed_messages.add(message_id)
-
-    # Parse the text into a dictionary
-    data_dict: dict = message_to_dict(text)
-
+    
     if user_id != None and user_id != BOT_ID and check_language_exists(text):
-        ts: str = event.get("ts")
-        repository: R = R(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict.get("Branch", "main"), data_dict.get("Commit", "latest"), data_dict.get("Scope", "all"))
-        path: str = repository.clone_repo(data_dict["Repo"])
-        cloc: Cloc = Cloc(path)
-        framework: F = F(path)
-        framework.format_code()
-        cloc_result: str = f"```{cloc.count_lines_of_code_full_scope(framework.framework)}```\nCode formatted\nBranch: {data_dict.get('Branch', 'main')}\nCommit: {data_dict.get('Commit', 'latest')}"
-        
-        client.chat_postMessage(channel=channel_id, thread_ts=ts, text=cloc_result) # Reply in thread if a solidity message was found
+        # ts: str = event.get("ts")
+        analysis_result: str = do_protocol_analysis(text)
+        client.chat_postMessage(channel=channel_id, thread_ts=message_id, text=analysis_result) # Reply in thread if a solidity message was found
 
 
 
