@@ -16,8 +16,8 @@ class Log(Console):
         console.log(f"[success]{message}[/success]")
 
 
-    def log_error(self, message: str, error: str) -> None:
-        console.log(f"[error]{message}[/error] {error}")
+    def log_error(self, message: str) -> None:
+        console.log(f"[error]{message}[/error]")
 
 
     def log_info(self, message: str, args: str = "") -> None:
