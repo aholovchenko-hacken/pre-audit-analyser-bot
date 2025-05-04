@@ -11,14 +11,15 @@ class Repository(Log):
         if not all([client, repo_ssh, language]):
             raise ValueError("Client, repo_ssh, and language must be non-empty strings")
 
-        self.repo_ssh = repo_ssh
-        self.client = client
-        self.language = language
-        self.branch = branch
-        self.commit = commit
-        self.scope = scope
-        self.timestamp = time.time()
-        self.created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.repo_ssh: str = repo_ssh
+        self.client: str = client
+        self.language: str = language
+        self.branch: str = branch
+        self.commit: str = commit
+        self.scope: str = scope
+        self.timestamp: float = time.time()
+        self.created_at: str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.temp_dir: str = tempfile.mkdtemp(prefix=f"repo_clone_{self.client}") # create an instance 
 
         Repository.all[self.client] = {
             "repo_ssh": self.repo_ssh,
@@ -39,11 +40,11 @@ class Repository(Log):
         return Repository.all[client]
 
 
-    def __get_modified_repo_ssh(self, repo_ssh: str) -> str:
+    def __get_modified_repo_ssh(self) -> str:
         """
         Returns the modified repository SSH URL for a given repository SSH URL(for this you need to set up your SSH keys)
         """
-        return repo_ssh.replace("git@github.com:hknio", "git@github.com-hacken:hknio")
+        return self.repo_ssh.replace("git@github.com:hknio", "git@github.com-hacken:hknio")
 
 
     def __checkout_branch(self, repo: git.Repo) -> None:
@@ -68,16 +69,14 @@ class Repository(Log):
             self.log_info("Defaulting to latest commit.")
 
 
-    def clone_repo(self, repo_ssh: str) -> str:
+    def clone_repo(self) -> str:
         """
         Clones a repository to a temporary directory and returns the path
         """
-        # Create a temporary directory
-        temp_dir = tempfile.mkdtemp(prefix=f"repo_clone_{self.client}")
         # Constructing a file path to an SSH key in the home directory | os.path.expanduser() - converts ~ into an absolute path like '/home/username/.ssh/'
         ssh_key_path = os.path.join(os.path.expanduser("~/.ssh/"), "id_rsa_hacken_1")
         # Modify the repo SSH URL if needed
-        modified_repo_ssh = self.__get_modified_repo_ssh(repo_ssh) 
+        modified_repo_ssh = self.__get_modified_repo_ssh() 
 
         self.log_info("Cloning repository: ", modified_repo_ssh)
 
@@ -90,15 +89,14 @@ class Repository(Log):
             os.environ["GIT_SSH_COMMAND"] = ssh_command
 
             # Clone the repository using GitPython
-            git.Repo.clone_from(modified_repo_ssh, temp_dir)
-            repo = git.Repo(temp_dir)
+            git.Repo.clone_from(modified_repo_ssh, self.temp_dir)
+            repo = git.Repo(self.temp_dir)
 
             # Checkout to a specific branch and commit if provided
             self.__checkout_branch(repo)
             self.__checkout_commit(repo)
 
             self.log_success("Repository cloned successfully!")
-            return temp_dir
         except git.GitCommandError as e:
             self.log_error("Failed to clone repository: ", {str(e)})
             return None
