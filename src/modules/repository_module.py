@@ -13,9 +13,9 @@ class Repository(Log):
 
         self.repo_ssh: str = repo_ssh
         self.client: str = client
-        self.language: str = language
-        self.branch: str = branch
-        self.commit: str = commit
+        self.language: str = language.lower()
+        self.branch: str = branch.lower()
+        self.commit: str = commit.lower()
         self.scope: str = scope
         self.timestamp: float = time.time()
         self.created_at: str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
