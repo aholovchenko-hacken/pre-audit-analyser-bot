@@ -37,22 +37,26 @@ def check_language_exists(message: str) -> bool:
     return False
 
 
-def message_to_dict(message:str) -> dict:
+def message_to_dict(slack_message: str) -> dict:
     """
-    Convert a message to a dictionary
+    Convert a message to a dictionary for easier processing
     Args:
-        message (str): The message to convert
+        slack_message (str): Message bot receive from Slack
     Returns:
         dict: The dictionary representation of the message
     """
-    data_dict: dict = {}
-    for line in message.split("\n"):
+    message_dict: dict = {}
+    for line in slack_message.split("\n"):
         if ":*" in line or "*" in line:
             key, value = line.split(":", 1)
             key = key.replace("*", "").strip()
-            value = value.replace("*", "").strip()  # Remove asterisks from value as well
-            data_dict[key] = value
-    return data_dict
+            value = value.replace("*", "").strip()
+            if key == "Scope":
+                # Split by comma and strip whitespace from each item
+                message_dict[key] = [v.strip() for v in value.split(",")]
+            else:
+                message_dict[key] = value
+    return message_dict
 
 
 def check_if_message_already_processed(message_id: str) -> bool:
@@ -69,32 +73,25 @@ def check_if_message_already_processed(message_id: str) -> bool:
     return False
 
 
-def do_protocol_analysis(message_text: str) -> str:
+def do_protocol_analysis(slack_message: str) -> str:
     """
     Analyse the protocol and return a string with CLOC + additional results.
     Args:
-        protocol_info (dict): The information about the protocol
+        slack_message (str): The message from Slack
     Returns:
         str: The result of the analysis
     """
     # Parse the text into a dictionary
-    data_dict: dict = message_to_dict(message_text)
+    message: dict = message_to_dict(slack_message)
     # Define instances of the Repository, Cloc and Framework classes
-    repository: R = R(data_dict["Repo"], data_dict["Client"], data_dict["Language"], data_dict.get("Branch", "main"), data_dict.get("Commit", "latest"), data_dict.get("Scope", "all"))
+    repository: R = R(message["Repo"], message["Client"], message["Language"], message.get("Branch", "main"), message.get("Commit", "latest"), message.get("Scope", "all"))
     framework: F = F(repository.temp_dir)
-    cloc: C = C(repository.temp_dir)
+    cloc: C = C(repository.temp_dir, message)
     # Clone the repository, format the code and count the lines of code
-    
     repository.clone_repo()
     framework.detect_framework()
     framework.format_code()
-    cloc_result: str = f"""
-        ```{cloc.count_lines_of_code_full_scope(framework.framework)}```\n
-        Code formatted\n
-        Branch: {data_dict.get('Branch', 'main')}\n
-        Commit: {data_dict.get('Commit', 'latest')}
-    """
-    return cloc_result
+    return cloc.get_cloc_result()
 
 
 @slack_events_adapter.on("message")
@@ -117,10 +114,8 @@ def handle_message(payload) -> None:
         return
     
     if user_id != None and user_id != BOT_ID and check_language_exists(text):
-        # ts: str = event.get("ts")
         analysis_result: str = do_protocol_analysis(text)
         client.chat_postMessage(channel=channel_id, thread_ts=message_id, text=analysis_result) # Reply in thread if a solidity message was found
-
 
 
 if __name__ == '__main__':   # If we run this file directly - then start the server     
